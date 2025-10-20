@@ -1,0 +1,63 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id=1]
+[ext_resource type="PackedScene" path="res://scenes/Item.tscn" id=2]
+[ext_resource type="Script" path="res://scripts/Game.gd" id=3]
+[sub_resource type="RectangleShape2D" id=1]
+size = Vector2(800, 40)
+
+[node name="Main" type="Node2D"]
+script = ExtResource(3)
+
+[node name="Level" type="Node2D" parent="."]
+
+[node name="Ground" type="StaticBody2D" parent="Level"]
+position = Vector2(0, 280)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Level/Ground"]
+shape = SubResource(1)
+
+[node name="Player" parent="." instance=ExtResource(1)]
+position = Vector2(100, 100)
+
+[node name="Items" type="Node2D" parent="."]
+
+[node name="Item1" parent="Items" instance=ExtResource(2)]
+position = Vector2(200, 240)
+
+[node name="Item2" parent="Items" instance=ExtResource(2)]
+position = Vector2(300, 200)
+
+[node name="Item3" parent="Items" instance=ExtResource(2)]
+position = Vector2(420, 220)
+
+[node name="Item4" parent="Items" instance=ExtResource(2)]
+position = Vector2(540, 180)
+
+[node name="Item5" parent="Items" instance=ExtResource(2)]
+position = Vector2(650, 240)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="UI"]
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = 12.0
+offset_top = 12.0
+
+[node name="Label" type="Label" parent="UI/HUD"]
+text = "Itens: 0 / 0"
+
+[node name="ProgressBar" type="ProgressBar" parent="UI/HUD"]
+position = Vector2(0, 24)
+size_flags_horizontal = 3
+anchor_right = 0.0
+anchor_bottom = 0.0
+custom_minimum_size = Vector2(200, 16)
+value = 0.0
+
+[node name="DarknessOverlay" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.6)
+mouse_filter = 2
