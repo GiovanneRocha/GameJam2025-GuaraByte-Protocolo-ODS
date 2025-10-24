@@ -1,2 +1,11 @@
 pygame==2.5.2
 Pillow==10.4.0
+opencv-python==4.8.0.76
+numpy==1.26.4
+moviepy==1.0.3
+imageio-ffmpeg==0.4.8
+
+pip install pyinstaller
+pyinstaller --noconfirm --onefile --name GuaraByte src/main.py --paths src --add-data "assets;assets"
+
+python -m pip install opencv-python moviepy imageio-ffmpeg numpy pygame Pillow

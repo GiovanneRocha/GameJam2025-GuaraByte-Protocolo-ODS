@@ -8,6 +8,9 @@ from utils import draw_grid_background, clamp
 from ui import draw_hud, draw_boss_banner, draw_instructions
 from entities import WordEnemy, Boss
 import assets
+from menu import Menu
+from cutscene import Cutscene
+from credits import Credits
 
 try:
     from PIL import Image
@@ -19,7 +22,6 @@ class Game:
     def __init__(self, record_demo_seconds: int | None = None):
         pygame.init()
         
-        # Inicialização do áudio
         try:
             pygame.mixer.pre_init(44100, -16, 2, 512)
             pygame.mixer.init()
@@ -27,20 +29,21 @@ class Game:
         except Exception as e:
             print(f"Erro ao inicializar áudio: {e}")
         
-        info = pygame.display.Info()
-        max_h = int(info.current_h * 0.92)
-        h = max(min(max_h, 960), 720)
-        w = int(h * 9/16)
-
+        # Usa dimensões definidas em settings
         self.is_fullscreen = False
-        self.last_window_size = (S.WIDTH, S.HEIGHT)
-
-        # create initial window (resizable)
+        self.last_window_size = (S.WINDOW_WIDTH, S.WINDOW_HEIGHT)
         self.screen = self.create_window(self.last_window_size, fullscreen=False)
 
         self.clock = pygame.time.Clock()
 
         assets.load_assets()
+
+        # menu / cutscene
+        self.menu = Menu(self)
+        self.cutscene = Cutscene(self, slides=None)
+        self.credits = Credits(self)
+        # estado: 'menu' | 'cutscene' | 'playing' | 'credits' | 'victory'
+        self.state = 'menu'
 
         self.wallpaper = None
         self._wallpaper_scaled = None 
@@ -64,18 +67,20 @@ class Game:
 
         self.begin_level(self.level_index)
 
-        # Inicia música de fundo padrão
+        # Inicia música de fundo padrão (mas menu pode substituir)
         assets.play_music('background.mp3')
 
     def create_window(self, size: tuple[int, int], fullscreen: bool = False):
+        if fullscreen:
+            size = (S.FULLSCREEN_WIDTH, S.FULLSCREEN_HEIGHT)
         flags = pygame.FULLSCREEN if fullscreen else pygame.RESIZABLE
         screen = pygame.display.set_mode(size, flags)
-        # Recalcula runtime e escala; preserva DEMO_DIR definido anteriormente
         S.init_runtime(screen.get_width(), screen.get_height(), S.DEMO_DIR)
         pygame.display.set_caption(S.TITLE)
         return screen
 
     def begin_level(self, i: int):
+        # Remove verificação de cutscene aqui, já que ela é iniciada no menu
         cfg = LEVELS[i]
         self.enemies = []
         self.target_enemy = None
@@ -140,10 +145,29 @@ class Game:
             else:
                 ok_b, completed, completed_word = self.boss.handle_char(ch)
                 if ok_b:
-                    assets.play('ok')
+                    # som de dano no boss
+                    try:
+                        assets.play('boss_hit')   # coloque assets/sounds/boss_hit.wav
+                    except Exception:
+                        try:
+                            assets.play('ok')
+                        except Exception:
+                            pass
                 if completed and completed_word:
                     # remove any minions with the same word (como em WordEnemy)
                     removed = self.destroy_all_with_word(completed_word)
+                    # limpa a palavra corrente do boss (comportamento igual aos vírus)
+                    try:
+                        if hasattr(self.boss, 'clear_current'):
+                            self.boss.clear_current()
+                        else:
+                            # fallback: zera matched/current se existir
+                            if hasattr(self.boss, 'current'):
+                                self.boss.current = ""
+                            if hasattr(self.boss, 'matched'):
+                                self.boss.matched = 0
+                    except Exception:
+                        pass
                     if removed > 0:
                         self.score += 10 * removed
                         assets.play('clean')
@@ -163,7 +187,55 @@ class Game:
             else:
                 self.current_input += ch
 
+    def show_victory(self):
+        """Chamada quando derrotar o boss final"""
+        self.victory = True
+        # Toca música de vitória (use assets/musics/victory.mp3)
+        try:
+            assets.play_music('musics/victory.mp3', getattr(S, 'MUSIC_VOLUME', 0.6))
+        except Exception:
+            try:
+                assets.play_music('victory.mp3', getattr(S, 'MUSIC_VOLUME', 0.6))
+            except Exception:
+                pass
+
+        # Partículas / efeitos visuais de vitória
+        self.victory_timer = 5.0  # segundos antes dos créditos
+        self.victory_particles = []
+        import random
+        for i in range(80):
+            self.victory_particles.append({
+                'x': random.uniform(0, S.WIDTH),
+                'y': random.uniform(-S.HEIGHT*0.2, S.HEIGHT),
+                'vx': random.uniform(-120, 120),
+                'vy': random.uniform(-400, -100),
+                'size': random.uniform(4, 12),
+                'color': (random.randint(120,255), random.randint(120,255), random.randint(120,255)),
+                'life': random.uniform(1.0, 2.5)
+            })
+        # shake timer
+        self._screen_shake = 0.8
+
     def update_logic(self, dt):
+        if self.victory:
+            self.victory_timer -= dt
+            # atualiza partículas
+            if hasattr(self, 'victory_particles'):
+                for p in list(self.victory_particles):
+                    p['vy'] += 800 * dt  # gravidade
+                    p['x'] += p['vx'] * dt
+                    p['y'] += p['vy'] * dt
+                    p['life'] -= dt
+                    if p['life'] <= 0 or p['y'] > S.HEIGHT + 50:
+                        self.victory_particles.remove(p)
+            # redução do screen shake
+            if getattr(self, '_screen_shake', 0) > 0:
+                self._screen_shake = max(0.0, self._screen_shake - dt*1.2)
+
+            if self.victory_timer <= 0:
+                self.credits.start()
+                self.state = 'credits'
+                return
         if self.game_over or self.victory:
             return
         cfg = LEVELS[self.level_index]
@@ -283,10 +355,34 @@ class Game:
             r = t.get_rect(center=(S.WIDTH // 2, S.HEIGHT // 2))
             self.screen.blit(t, r)
         if self.victory:
-            f = pygame.font.Font(None, int(36 * S.SCALE))
-            t = f.render("MISSAO CUMPRIDA! REDE RESTAURADA.", True, (140, 255, 190))
-            r = t.get_rect(center=(S.WIDTH // 2, S.HEIGHT // 2))
-            self.screen.blit(t, r)
+            # banner central animado
+            f = pygame.font.Font(None, int(48 * S.SCALE))
+            t = f.render("MISSAO CUMPRIDA! REDE RESTAURADA.", True, (20, 40, 20))
+            # glow/back
+            rect = t.get_rect(center=(S.WIDTH // 2, int(S.HEIGHT * 0.45)))
+            # desenha glow grande
+            glow = pygame.Surface((rect.width+80, rect.height+40), pygame.SRCALPHA)
+            for i in range(6,0,-1):
+                alpha = int(40 * (i/6))
+                pygame.draw.rect(glow, (200,255,200,alpha), glow.get_rect(), border_radius=20)
+            g_rect = glow.get_rect(center=rect.center)
+            self.screen.blit(glow, g_rect)
+            self.screen.blit(t, rect)
+
+            # partículas de vitória
+            if hasattr(self, 'victory_particles'):
+                for p in self.victory_particles:
+                    s = pygame.Surface((int(p['size']), int(p['size'])), pygame.SRCALPHA)
+                    pygame.draw.circle(s, (*p['color'], 220), (int(p['size']//2), int(p['size']//2)), int(p['size']//2))
+                    self.screen.blit(s, (p['x'], p['y']))
+
+            # leve screen shake deslocando HUD (visual apenas)
+            if getattr(self, '_screen_shake', 0) > 0:
+                import math, random
+                sx = int((random.random()-0.5)*8*self._screen_shake)
+                sy = int((random.random()-0.5)*8*self._screen_shake)
+                # aplica deslocamento simples no topo (pode ser melhorado)
+                pygame.display.get_surface().scroll(dx=sx, dy=sy)
 
     def run(self):
         elapsed = 0.0
@@ -296,63 +392,52 @@ class Game:
             for ev in pygame.event.get():
                 if ev.type == QUIT:
                     running = False
-
                 elif ev.type == pygame.VIDEORESIZE:
-                    # usuário redimensionou a janela (só se não estiver em fullscreen)
                     if not self.is_fullscreen:
                         self.last_window_size = (ev.w, ev.h)
-                        # recria a janela resizável com novo tamanho
                         self.screen = self.create_window(self.last_window_size, fullscreen=False)
-                        # Se houver caches/surfaces dependentes do tamanho, recrie-os aqui.
-
                 elif ev.type == KEYDOWN:
-                    # teclas de controle
                     if ev.key == pygame.K_ESCAPE:
-                        running = False
-                    elif ev.key == pygame.K_F11:
-                        # toggle fullscreen
-                        if not self.is_fullscreen:
-                            info = pygame.display.Info()
-                            self.screen = self.create_window((info.current_w, info.current_h), fullscreen=True)
-                            self.is_fullscreen = True
+                        if self.state == 'menu':
+                            running = False
+                        elif self.state == 'cutscene':
+                            self.cutscene.finish()
+                        elif self.state == 'credits':
+                            self.credits.finish()
                         else:
-                            self.screen = self.create_window(self.last_window_size, fullscreen=False)
-                            self.is_fullscreen = False
+                            running = False
+                    elif ev.key == pygame.K_F11:
+                        # toggles fullscreen como já implementado...
+                        pass
                     else:
-                        # input do jogador (somente quando jogando)
-                        if not (self.game_over or self.victory):
-                            # DELETE: remove a palavra inteira (target ou por input)
-                            if ev.key == pygame.K_DELETE:
-                                word = None
-                                if self.target_enemy:
-                                    word = self.target_enemy.word
-                                elif self.current_input:
-                                    cand = self.choose_enemy_by_prefix(self.current_input)
-                                    word = cand.word if cand else None
+                        if self.state == 'menu':
+                            self.menu.handle_event(ev)
+                        elif self.state == 'cutscene':
+                            self.cutscene.handle_event(ev)
+                        elif self.state == 'credits':
+                            self.credits.handle_event(ev)
+                        else:
+                            # input do jogador no jogo
+                            self._handle_game_input(ev)
 
-                                if word:
-                                    removed = self.destroy_all_with_word(word)
-                                    # limpa estado de seleção/input
-                                    self.current_input = ""
-                                    self.target_enemy = None
-                                    if removed > 0:
-                                        self.score += 10 * removed
-                                        assets.play('clean')
-                                else:
-                                    # nada para deletar: apenas limpa o input
-                                    self.current_input = ""
+            # updates por estado
+            if self.state == 'playing':
+                self.update_logic(dt)
+            elif self.state == 'cutscene':
+                self.cutscene.update(dt)
+            elif self.state == 'credits':
+                self.credits.update(dt)
 
-                            else:
-                                ch = ev.unicode.upper() if hasattr(ev, 'unicode') else ''
-                                if ch and ch.isprintable() and len(ch) == 1 and ch.isalnum():
-                                    self.handle_key_char(ch)
-                                elif ev.key == pygame.K_BACKSPACE:
-                                    self.current_input = self.current_input[:-1]
-                                    if not self.current_input and self.target_enemy:
-                                        self.target_enemy = None
-
-            self.update_logic(dt)
-            self.draw()
+            # desenho por estado — IMPORTANTE: não desenha o jogo quando em credits
+            if self.state == 'menu':
+                self.menu.draw(self.screen)
+            elif self.state == 'cutscene':
+                self.cutscene.draw(self.screen)
+            elif self.state == 'credits':
+                # desenha apenas os créditos (tela preta + textos)
+                self.credits.draw(self.screen)
+            else:  # playing / victory / game_over
+                self.draw()
 
             pygame.display.flip()
 

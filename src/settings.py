@@ -40,9 +40,21 @@ DEMO_DIR = None  # set by main
 MUSIC_VOLUME = 0.4
 SOUND_VOLUME = 0.5
 
+# Dimensões iniciais da janela
+WINDOW_WIDTH = 1000
+WINDOW_HEIGHT = 800
+
+# Resolução para tela cheia
+FULLSCREEN_WIDTH = 1920
+FULLSCREEN_HEIGHT = 1080
+
 
 def init_runtime(width: int, height: int, demo_dir: str | None = None):
     global WIDTH, HEIGHT, SCALE, DEMO_DIR
     WIDTH, HEIGHT = width, height
     SCALE = min(WIDTH/BASE_W, HEIGHT/BASE_H)
     DEMO_DIR = demo_dir
+
+# cores de texto usadas pela UI / menu / mensagens
+COLOR_TEXT = (220, 220, 220)
+COLOR_TEXT_ERROR = (255, 80, 80)

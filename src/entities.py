@@ -2,67 +2,78 @@
 import random
 import pygame
 import settings as S
-from utils import clamp, draw_label_box, make_font
-import assets  # import do módulo de assets corrigido
+import assets
 
 class WordEnemy:
-    def __init__(self, words, speed_factor=1.0):
-        self.word = random.choice(words)
-        # Start somewhere near top
-        self.x = random.randint(int(24*S.SCALE), S.WIDTH - int(24*S.SCALE))
-        self.y = random.randint(int(-180*S.SCALE), int(-80*S.SCALE))
-        vy_min, vy_max = S.ENEMY_VY_RANGE
-        vx_min, vx_max = S.ENEMY_VX_RANGE
-        self.vy = random.uniform(vy_min, vy_max) * speed_factor
-        self.vx = random.uniform(vx_min, vx_max) * speed_factor
-        self.matched = 0
-
-        # Carrega sprite via assets (use chave 'virus')
-        sprite_orig = assets.get_image('virus')
-        if sprite_orig:
-            try:
-                # aumentei de 30 -> 48 para melhor visibilidade; ajuste conforme necessário
-                self.sprite = pygame.transform.scale(sprite_orig, (int(80 * S.SCALE), int(80 * S.SCALE)))
-            except Exception:
-                self.sprite = sprite_orig
+    def __init__(self, words, x=0, y=0, speed: float = 0.0, speed_factor: float = 1.0):
+        """
+        words: lista de palavras possíveis ou única palavra conforme implementação do projeto
+        speed: velocidade base
+        speed_factor: multiplicador (aceita chamada com speed_factor=...)
+        """
+        # aceita tanto lista de palavras quanto string
+        if isinstance(words, (list, tuple)):
+            self.word = random.choice(words)
         else:
-            self.sprite = None
+            self.word = str(words)
+
+        self.x = x if x else random.uniform(50, S.WIDTH - 50)
+        self.y = y if y else -30.0
+        # aplica fator de velocidade
+        self.speed = (speed or S.DEFAULT_ENEMY_SPEED) * float(speed_factor)
+
+        # estados de digitação / correspondência
+        self.matched = 0
+        self.dead = False
+
+        # randomiza imagem entre virus1..virus4.png (procura em assets/images)
+        self.image = None
+        try:
+            idx = random.randint(1, 4)
+            img = None
+            # tenta caminhos comuns que o módulo assets possa esperar
+            for p in (f'images/virus{idx}.png', f'virus{idx}.png'):
+                try:
+                    img = assets.get_image(p)
+                    if img:
+                        break
+                except Exception:
+                    img = None
+            if img:
+                self.image = img
+        except Exception:
+            self.image = None
 
     def starts_with(self, prefix: str) -> bool:
         return self.word.startswith(prefix)
 
-    def consume_char(self, ch: str) -> bool:
-        if self.matched < len(self.word) and ch == self.word[self.matched]:
-            self.matched += 1
-            return True
-        return False
-
-    def is_completed(self) -> bool:
-        return self.matched >= len(self.word)
+    def update(self, dt: float):
+        self.y += self.speed * dt
 
     def is_off_bottom(self) -> bool:
-        return self.y - int(20*S.SCALE) > S.HEIGHT
-
-    def update(self, dt):
-        # Move and bounce on side walls
-        self.x += self.vx * dt
-        self.y += self.vy * dt
-        margin = int(S.MARGIN_X * S.SCALE)
-        # Fit a provisional width estimate to keep horizontally inside
-        # If touches side walls, bounce
-        if self.x < margin:
-            self.x = margin
-            self.vx = abs(self.vx)
-        if self.x > S.WIDTH - margin:
-            self.x = S.WIDTH - margin
-            self.vx = -abs(self.vx)
+        return self.y > S.HEIGHT + 50
 
     def draw(self, surface):
-        # Desenha o sprite do vírus (acima da palavra)
-        if self.sprite:
-            sprite_rect = self.sprite.get_rect()
-            sprite_rect.midbottom = (int(self.x), int(self.y - 10 * S.SCALE))
-            surface.blit(self.sprite, sprite_rect)
+        # primeiro desenha o texto (base) — assim a imagem pode ficar por cima
+        try:
+            font = pygame.font.Font(None, int(20 * getattr(S, 'SCALE', 1.0)))
+            txt = self.word
+            txt_surf = font.render(txt, True, getattr(S, 'COLOR_TEXT', (220,220,220)))
+            # posiciona texto logo abaixo do vírus (ajuste conforme preferir)
+            txt_rect = txt_surf.get_rect(center=(int(self.x), int(self.y + 28)))
+            surface.blit(txt_surf, txt_rect)
+        except Exception:
+            pass
+
+        # depois desenha a imagem do vírus por cima do texto
+        if self.image:
+            try:
+                w = int(48 * getattr(S, 'SCALE', 1.0))
+                h = int(48 * getattr(S, 'SCALE', 1.0))
+                img = pygame.transform.smoothscale(self.image, (w, h))
+            except Exception:
+                img = pygame.transform.scale(self.image, (w, h))
+            surface.blit(img, (int(self.x - w//2), int(self.y - h//2)))
         
         # Box max width: leave side margins
         max_w = S.WIDTH - int(32*S.SCALE)
@@ -121,3 +132,13 @@ class Boss:
 
     def reset_spawn(self):
         self.spawn_t = 0.0
+
+    def clear_current(self):
+        """Limpa a palavra corrente do boss (usado quando jogador completa/remover)"""
+        try:
+            if hasattr(self, 'current'):
+                self.current = ""
+            if hasattr(self, 'matched'):
+                self.matched = 0
+        except Exception:
+            pass

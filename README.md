@@ -1,3 +1,17 @@
+# GuaraByte: Protocolo ODS
+
+Resumo
+- Jogo em Pygame (portrait / escala dinâmica).
+- Cutscene em vídeo: assets/videos/Cutscene.mp4.
+- Música de introdução: assets/musics/intro.mp3 (é reproduzida junto com o vídeo).
+- Pressione Enter ou Espaço para pular cutscene.
+- F11 alterna fullscreen (forçado para 1920x1080). Janela inicial: 1000x900.
+
+Requisitos do sistema
+- Windows (testado) ou outro OS com Python 3.10+.
+- Recomendado: ffmpeg no PATH (opcional, usado para extrair/compatibilizar áudio).
+- Acesso a instalação de pip para pacotes Python.
+
 
 # GuaraByte: Protocolo ODS (portrait, modular)
 
