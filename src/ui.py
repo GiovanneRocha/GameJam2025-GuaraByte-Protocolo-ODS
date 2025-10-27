@@ -76,11 +76,13 @@ def draw_instructions(screen, current_input):
     x = max(8, (S.WIDTH - t.get_width())//2)
     screen.blit(t, (x, y + (panel_h - t.get_height())//2))
 
-    # input do jogador
+    # input atual do jogador (texto digitado)
     pf = make_font(28, True)
-    inp = pf.render(current_input, True, S.COLOR_PLAYER_INPUT)
+    # força o texto para MAIÚSCULAS com .upper()
+    inp = pf.render(current_input.upper(), True, S.COLOR_PLAYER_INPUT)
     ir = inp.get_rect(center=(S.WIDTH//2, S.HEIGHT - int(84*S.SCALE)))
     screen.blit(inp, ir)
+
 
     # Desenha o GUARA (acima da palavra digitada)
     guara_sprite = assets.get_image('guara')
