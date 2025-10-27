@@ -311,9 +311,14 @@ class Game:
         if (not (self.boss and not self.boss.defeated)) or (self.target_enemy is not None):
             if not self.target_enemy and self.current_input:
                 self.target_enemy = self.choose_enemy_by_prefix(self.current_input)
+            # if self.target_enemy and self.current_input:
+            #     if not self.target_enemy.starts_with(self.current_input):
+            #         self.current_input = ""
+            #         self.target_enemy.matched = 0
+            #         self.target_enemy = None
             if self.target_enemy and self.current_input:
                 if not self.target_enemy.starts_with(self.current_input):
-                    self.current_input = ""
+                # não zera o input, apenas desassocia o inimigo
                     self.target_enemy.matched = 0
                     self.target_enemy = None
                 else:
