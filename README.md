@@ -12,7 +12,7 @@ Este documento serve como o `relatorioFinal` do projeto, detalhando todos os asp
 
 * **Giovanne Rocha Vieira** - (GTI, Noturno, 4)
 * **Gabriel Henrique de Sena** - (GTI, Noturno, 4)
-* **Danili Vicentin da Silva** - (GTI, Noturno, 4)
+* **Danilo Vicentin da Silva** - (GTI, Noturno, 4)
 * **João Paulo Duarte Pimentel** - (GTI, Noturno, 3)
 
 ---
