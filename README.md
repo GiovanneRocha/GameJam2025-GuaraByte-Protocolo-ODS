@@ -92,18 +92,7 @@ O tema foi abordado transformando os 4 Servidores-Núcleo do jogo em representa�
 
 ---
 
-## 6. Mudanças desde o Relatório Inicial
-
-| Relatório Inicial (Ideathon) | Produto Final (Relatório Final) |
-| :--- | :--- |
-| A ideia era um jogo de plataforma simples. | Mudamos o gênero para "Typing Game" para focar na mecânica de "depuração" (digitar). |
-| O G.U.A.R.Á. iria "pular" nos inimigos. | O G.U.A.R.Á. agora mira e o jogador digita as palavras associadas aos inimigos. |
-| O tema ODS seria apenas visual. | O tema ODS foi integrado à mecânica e à narrativa de cada fase. |
-| [Adicione outras mudanças que vocês fizeram...] | [Adicione outras mudanças...] |
-
----
-
-## 7. Demonstração (GIFs e Vídeos)
+## 6. Demonstração (GIFs e Vídeos)
 
 Aqui estão as principais funcionalidades do jogo em ação:
 
@@ -121,7 +110,7 @@ Aqui estão as principais funcionalidades do jogo em ação:
 
 ---
 
-## 8. Créditos e Licenças (Assets)
+## 7. Créditos e Licenças (Assets)
 
 * **Músicas e Efeitos Sonoros:** Musicas do Site pixabay: https://pixabay.com/pt/music/search/game
 * **Fontes:** 
