@@ -455,6 +455,57 @@ class Game:
             if ch and ch.isprintable():
                 # normalize to lower-case to match word lists (words are typically lower-case)
                 ch = ch.lower()
+                # --- filtro: aceita apenas letras que aparecem na palavra alvo atual ---
+                try:
+                    allowed_chars = set()
+                    # se houver um inimigo alvo, só permite letras daquela palavra
+                    if self.target_enemy:
+                        allowed_chars = set(self.target_enemy.word)
+                    else:
+                        # se houver boss ativo e sem alvo, permite letras da palavra corrente do boss
+                        if (self.boss and not self.boss.defeated) and (getattr(self.boss, 'current', None)):
+                            allowed_chars = set(self.boss.current)
+                        else:
+                            # caso padrão: permite letras que aparecem em qualquer inimigo na tela
+                            allowed_chars = set(''.join(e.word for e in self.enemies))
+                    # normalize allowed chars to lower-case
+                    allowed_chars = set(c.lower() for c in allowed_chars if isinstance(c, str))
+                except Exception:
+                    allowed_chars = set()
+
+                # se não está nas permitidas, ignora o input (pode tocar som de erro opcionalmente)
+                if allowed_chars and ch not in allowed_chars:
+                    try:
+                        assets.play('error')
+                    except Exception:
+                        pass
+                    return
+
+                # --- novo filtro: só permite formar prefixes válidos de palavras existentes ---
+                try:
+                    proposed = (self.current_input or "") + ch
+                    prefix_ok = False
+                    if self.target_enemy:
+                        # se existe um alvo, o input precisa ser prefixo da palavra desse alvo
+                        prefix_ok = self.target_enemy.starts_with(proposed)
+                    else:
+                        # sem alvo: permite se for prefixo de qualquer inimigo na tela
+                        any_enemy_prefix = any(e.starts_with(proposed) for e in self.enemies)
+                        # se boss ativo, também permite prefixo da palavra corrente do boss
+                        boss_prefix = False
+                        if (self.boss and not self.boss.defeated) and getattr(self.boss, 'current', None):
+                            boss_prefix = self.boss.current.startswith(proposed)
+                        prefix_ok = any_enemy_prefix or boss_prefix
+                except Exception:
+                    prefix_ok = True
+
+                if not prefix_ok:
+                    try:
+                        assets.play('error')
+                    except Exception:
+                        pass
+                    return
+
                 # delegate core logic (this will append to current_input and handle boss logic)
                 self.handle_key_char(ch)
 

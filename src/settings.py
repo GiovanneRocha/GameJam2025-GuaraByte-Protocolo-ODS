@@ -40,8 +40,8 @@ PREF_FONT = None  # use system default; can point to a TTF path in assets/fonts
 DEMO_DIR = None  # set by main
 
 # Configurações de áudio
-MUSIC_VOLUME = 0.4
-SOUND_VOLUME = 0.5
+MUSIC_VOLUME = 0.1
+SOUND_VOLUME = 0.1
 
 # Dimensões iniciais da janela
 WINDOW_WIDTH = 1000
