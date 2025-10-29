@@ -250,6 +250,11 @@ class Game:
         except Exception:
             pass
 
+    def show_game_over(self):
+        """Chamada quando o jogador perde."""
+        self.game_over = True
+        self.game_over_timer = 5.0  # 5 segundos de tela de game over
+
     def update_logic(self, dt):
         if self.victory:
             self.victory_timer -= dt
@@ -270,8 +275,12 @@ class Game:
                 self.credits.start()
                 self.state = 'credits'
                 return
-        if self.game_over or self.victory:
+        if self.game_over:
+            self.game_over_timer -= dt
+            if self.game_over_timer <= 0:
+                self.state = 'menu'  # Retorna ao menu
             return
+        
         cfg = LEVELS[self.level_index]
 
         # Natural spawn
@@ -344,7 +353,7 @@ class Game:
 
         # Check game over
         if self.corrupcao <= 0:
-            self.game_over = True
+            self.show_game_over()
 
         # Level progression: need score >= 300 and (if boss) boss defeated
         if cfg.has_boss:
@@ -390,7 +399,7 @@ class Game:
         # End states
         if self.game_over:
             f = pygame.font.Font(None, int(36 * S.SCALE))
-            t = f.render(f"REDE CORROMPIDA! (Depurados: {self.score})", True, S.COLOR_TEXT_ERROR)
+            t = f.render("GAME OVER! Tente novamente.", True, S.COLOR_TEXT_ERROR)
             r = t.get_rect(center=(S.WIDTH // 2, S.HEIGHT // 2))
             self.screen.blit(t, r)
         if self.victory:
