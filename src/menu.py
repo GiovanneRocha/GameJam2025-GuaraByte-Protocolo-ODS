@@ -38,12 +38,22 @@ class Menu:
         elif ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
             choice = self.options[self.selected]
             if choice == "Jogar":
-                if self.game.cutscene.has_video():
-                    self.game.cutscene.start()
-                    self.game.state = 'cutscene'
-                else:
-                    self.game.begin_level(self.game.level_index)
-                    self.game.state = 'playing'
+                # Reseta flags importantes
+                self.game.game_over = False
+                self.game.victory = False
+                
+                # Verifica se deve mostrar cutscene apenas na primeira vez
+                if not hasattr(self, '_showed_cutscene'):
+                    if self.game.cutscene.has_video():
+                        self.game.cutscene.start()
+                        self.game.state = 'cutscene'
+                        self._showed_cutscene = True
+                        return
+                
+                # Se já mostrou cutscene ou não tem, vai direto para o jogo
+                self.game.begin_level(self.game.level_index)
+                self.game.state = 'playing'
+                
             elif choice == "Créditos":
                 self.game.credits.start()
                 self.game.state = 'credits'

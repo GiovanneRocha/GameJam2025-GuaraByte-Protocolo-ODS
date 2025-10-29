@@ -252,8 +252,19 @@ class Game:
 
     def show_game_over(self):
         """Chamada quando o jogador perde."""
-        self.game_over = True
+        self.game_over = True 
         self.game_over_timer = 5.0  # 5 segundos de tela de game over
+        
+        # Reseta o estado do jogo para começar do início
+        self.level_index = 0
+        self.score = 0
+        self.corrupcao = S.CORRUPCAO_INICIAL
+        self.enemies = []
+        self.target_enemy = None
+        self.current_input = ""
+        self.spawn_t = 0.0
+        self.boss = None
+        self.victory = False
 
     def update_logic(self, dt):
         if self.victory:
